@@ -5,7 +5,7 @@ import { AngularFireModule } from '@angular/fire';
 import { environment } from 'src/environments/environment';
 
 const routes: Routes = [
-  {path: 'canvas', component: CanvasComponent}
+  {path: '', component: CanvasComponent}
 ];
 
 @NgModule({

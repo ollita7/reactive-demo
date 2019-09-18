@@ -1,7 +1,7 @@
 import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
-import { FirebaseFirestore } from '@angular/fire';
+import { map } from 'rxjs/operators';
 
 @Component({
   selector: 'app-canvas',
@@ -20,19 +20,29 @@ export class CanvasComponent implements OnInit {
   ngOnInit() {
     this.ctx = this.canvas.nativeElement.getContext('2d');
     this.ctx.fillStyle = 'red';
-    if (!this.firstTime) {
-      this.db.collection('points').valueChanges(['added']).subscribe(this.change);
-      this.firstTime = true;
-    }
+    this.db.collection('points').stateChanges(['added']).pipe(
+      map(actions => actions.map(a => {
+        const data = a.payload.doc.data();
+        const id = a.payload.doc.id;
+        return { ...data };
+      }))
+    ).subscribe(this.change);
   }
 
-  change = (items) => {
-    items.forEach((item: any) => {
-      this.ctx.fillRect(item.x, item.y, 5, 5);
-    });
+  change  = (item) => {
+    if (item.length > 1) {
+      this.ctx.clearRect(0, 0, 800, 600);
+      return;
+    }
+    this.ctx.fillRect(item[0].x, item[0].y, 5, 5);
   }
 
   reset() {
-    this.db.collection('points').doc().delete();
+    this.ctx.clearRect(0, 0, 800, 600);
+    this.db.collection('points').get().subscribe(res => {
+      res.forEach((doc) => {
+        this.db.collection('points').doc(doc.id).delete();
+      });
+    });
   }
 }
