@@ -1,6 +1,7 @@
 import { Component, AfterViewInit, ViewChild, ElementRef, Input } from '@angular/core';
 import { fromEvent, interval } from 'rxjs';
 import { switchMap, takeUntil, pairwise, distinctUntilChanged, map, throttle } from 'rxjs/operators';
+import { AngularFirestore } from '@angular/fire/firestore';
 
 type Point = {
   x: number,
@@ -16,11 +17,15 @@ export class CanvasEmitterComponent implements AfterViewInit {
 
   @ViewChild("canvas", { static: false }) public canvas: ElementRef;
 
-  @Input() public width = 400;
+  public width = 800;
 
-  @Input() public height = 400;
+  public height = 600;
 
   private cx: CanvasRenderingContext2D;
+
+  constructor(private db: AngularFirestore) { 
+    this.sendToFirebase.bind(this);
+  }
 
   ngAfterViewInit() {
     const canvasEl: HTMLCanvasElement = this.canvas.nativeElement;
@@ -46,12 +51,18 @@ export class CanvasEmitterComponent implements AfterViewInit {
             )
         })
       )
-      .pipe(throttle(event => interval(50)))
+      //.pipe(throttle(event => interval(50)))
       .pipe(map((event: MouseEvent) => ({ x: event.clientX, y: event.clientY })))
       .subscribe((pos: Point) => {
         const rect = canvasEl.getBoundingClientRect();
         console.log(pos);
+        this.sendToFirebase(pos);
+        this.cx.fillRect(pos.x, pos.y, 5, 5);
         // send to firebase
       })
+  }
+
+  private sendToFirebase(pos: Point){
+    this.db.collection("points").add(pos);
   }
 }
